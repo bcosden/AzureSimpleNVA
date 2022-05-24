@@ -53,6 +53,11 @@ iptables-save > /etc/iptables/rules.v4
 # Add static route for internal interface
 route add -net 10.1.0.0/16 gw 10.1.4.1 metric 0 dev eth1
 
+# Setup static route to persist between reboots
+echo "#!/bin/bash" > /etc/rc.local
+echo "route add -net 10.1.0.0/16 gw 10.1.4.1 metric 0 dev eth1" >> /etc/rc.local
+chmod +x /etc/rc.local
+
 ## Create a folder for the quagga logs
 echo "creating folder for quagga logs"
 mkdir -p /var/log/quagga && chown quagga:quagga /var/log/quagga
