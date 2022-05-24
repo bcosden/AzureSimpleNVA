@@ -60,8 +60,8 @@ az network routeserver create \
 
 # Create bastion to support access to other VM's that are not reachable publicly
 echo '['$(date +"%T")'] Creating Bastion'
-az network public-ip create --name bastion-pip --resource-group $rg -l $loc --sku Standard
-az network bastion create -g $rg -n bastion --public-ip-address bastion-pip --vnet-name hubVnet -l $loc
+az network public-ip create --name bastion-pip --resource-group $rg -l $loc --sku Standard -o none --only-show-errors
+az network bastion create -g $rg -n bastion --public-ip-address bastion-pip --vnet-name hubVnet -l $loc -o none --only-show-errors
 
 # Turn on SSH tunneling
 # az cli does not have a property to enable SSH tunneling, so must be done via rest API
