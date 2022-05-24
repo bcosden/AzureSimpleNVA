@@ -5,6 +5,7 @@ rg="rsQuagga-2nic"
 loc="eastus"
 
 vmname="QuaggaVM"
+vmtest="TestVM"
 username="azureuser"
 password="MyP@ssword123"
 vmsize="Standard_D2S_v3"
@@ -110,6 +111,19 @@ az vm create -n $vmname -g $rg \
     --admin-username $username \
     --ssh-key-values @~/.ssh/id_rsa.pub \
     --custom-data cloud-init \
+    --output none \
+    --only-show-errors
+
+# create a testVM
+echo '['$(date +"%T")'] Creating Test VM'
+az network nic create -g $rg --vnet-name hubVnet --subnet subnet1 -n $vmtest"NIC" -o none
+az vm create -n $vmtest -g $rg \
+    --image ubuntults \
+    --size $vmsize \
+    --nics $vmtest"NIC" \
+    --authentication-type ssh \
+    --admin-username $username \
+    --ssh-key-values @~/.ssh/id_rsa.pub \
     --output none \
     --only-show-errors
 
