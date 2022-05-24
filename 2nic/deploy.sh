@@ -57,6 +57,41 @@ az network routeserver create \
     --public-ip-address rshub-pip \
     --output none
 
+# Create bastion to support access to other VM's that are not reachable publicly
+echo '['$(date +"%T")'] Creating Bastion'
+az network public-ip create --name bastion-pip --resource-group $rg -l $loc --sku Standard
+az network bastion create -g $rg -n bastion --public-ip-address bastion-pip --vnet-name hubVnet -l $loc
+
+# Turn on SSH tunneling
+# az cli does not have a property to enable SSH tunneling, so must be done via rest API
+echo '['$(date +"%T")'] Enable Bastion Tunneling'
+subid=$(az account show --query 'id' -o tsv)
+uri='https://management.azure.com/subscriptions/'$subid'/resourceGroups/'$rg'/providers/Microsoft.Network/bastionHosts/bastion?api-version=2021-08-01'
+json='{
+  "location": "'$loc'",
+  "properties": {
+    "enableTunneling": "true",
+    "ipConfigurations": [
+      {
+        "name": "bastion_ip_config",
+        "properties": {
+          "subnet": {
+            "id": "/subscriptions/'$subid'/resourceGroups/'$rg'/providers/Microsoft.Network/virtualNetworks/hubVnet/subnets/AzureBastionSubnet"
+          },
+          "publicIPAddress": {
+            "id": "/subscriptions/'$subid'/resourceGroups/'$rg'/providers/Microsoft.Network/publicIPAddresses/bastion-pip"
+          }
+        }
+      }
+    ]
+  }
+}'
+
+az rest --method PUT \
+    --url $uri  \
+    --body "$json"  \
+    --output none
+
 # create QuaggaVM
 mypip=$(curl -4 ifconfig.io -s)
 echo '['$(date +"%T")'] Create Public IP, NSG, and Allow SSH on port 22 for IP: '$mypip
