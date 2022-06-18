@@ -10,7 +10,7 @@ password="MyP@ssword123"
 vmsize="Standard_D2S_v3"
 
 # create a resource group
-echo '['$(date +"%T")'] Creating Resource Group' $rg 'in' $loc
+echo -e '\033[1m['$(date +"%T")']\033[32m Creating Resource Group\033[36m' $rg '\033[32min\033[36m' $loc
 az group create -n $rg -l $loc -o none
 
 # create a virtual network
