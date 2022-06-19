@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # VARIABLES
-rg="gwlbtest"
+rg="gwlbnva"
 loc="eastus"
 
 BLACK="\033[30m"
