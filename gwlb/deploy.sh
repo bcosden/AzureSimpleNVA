@@ -183,4 +183,4 @@ echo "nva public ip: "$nvapubip
 echo ""
 echo "To check deployment: curl http://"$applbpip":8080/api/ip"
 echo ""
-echo "It may take up to 15 minutes before the API will respond ...."
+echo "It may take up to 5 minutes before the API will respond ...."
