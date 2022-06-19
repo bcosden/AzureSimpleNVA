@@ -180,6 +180,6 @@ nvapubip=$(az network public-ip show -n $vmnva"-pip" -g $rg --query ipAddress -o
 echo "app public ip: "$apppubip
 echo "nva public ip: "$nvapubip
 echo ""
-echo "To check deployment: curl http://"$applbpip":8080/api/ip"
+echo -e "To check deployment: \ncurl http://"$applbpip":8080/api/ip"
 echo ""
 echo "It may take up to 5 minutes before the API will respond ...."
