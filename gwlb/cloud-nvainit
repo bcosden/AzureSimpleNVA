@@ -3,16 +3,16 @@
 apt-get -y update
 
 ## Install the Quagga routing daemon
-echo "Installing quagga"
-apt-get -y install quagga
+#echo "Installing quagga"
+#apt-get -y install quagga
 
-echo "Installing IPTables-Persistent"
-echo iptables-persistent iptables-persistent/autosave_v4 boolean false | sudo debconf-set-selections
-echo iptables-persistent iptables-persistent/autosave_v6 boolean false | sudo debconf-set-selections
-apt-get -y install iptables-persistent
+#echo "Installing IPTables-Persistent"
+#echo iptables-persistent iptables-persistent/autosave_v4 boolean false | sudo debconf-set-selections
+#echo iptables-persistent iptables-persistent/autosave_v6 boolean false | sudo debconf-set-selections
+#apt-get -y install iptables-persistent
 
 ##  run the updates and ensure the packages are up to date and there is no new version available for the packages
-apt-get -y update --fix-missing
+#apt-get -y update --fix-missing
 
 ## Enable IPv4 forwarding
 echo "net.ipv4.conf.all.forwarding=1" | tee -a /etc/sysctl.conf
@@ -20,13 +20,14 @@ echo "net.ipv4.conf.default.forwarding=1" | tee -a /etc/sysctl.conf
 sysctl -p
 
 # Enable NAT to Internet
-iptables -t nat -A POSTROUTING -d 10.0.0.0/8 -j ACCEPT
-iptables -t nat -A POSTROUTING -d 172.16.0.0/12 -j ACCEPT
-iptables -t nat -A POSTROUTING -d 192.168.0.0/16 -j ACCEPT
-iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+#iptables -t nat -A POSTROUTING -d 10.0.0.0/8 -j ACCEPT
+#iptables -t nat -A POSTROUTING -d 172.16.0.0/12 -j ACCEPT
+#iptables -t nat -A POSTROUTING -d 192.168.0.0/16 -j ACCEPT
+#iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+iptables -A FORWARD -j ACCEPT
 
 # Save to IPTables file for persistence on reboot
-iptables-save > /etc/iptables/rules.v4
+#iptables-save > /etc/iptables/rules.v4
 
 ifconfig eth0 mtu 1600
 
