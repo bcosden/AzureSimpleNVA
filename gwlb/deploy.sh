@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # VARIABLES
-rg="gwlbnva"
+rg="gwlbtest"
 loc="eastus"
 
 BLACK="\033[30m"
@@ -176,7 +176,7 @@ az network lb frontend-ip update -n vmfrontend --lb-name applb -g $rg --public-i
 
 # output key variables
 echo -e "$WHITE[$(date +"%T")]$GREEN Deployment Complete: $WHITE"
-echo "front end app load balancer ip: "$applbpip
+echo "app lb ip: "$applbpip
 nvapubip=$(az network public-ip show -n $vmnva"-pip" -g $rg --query ipAddress -o tsv)
 echo "app public ip: "$apppubip
 echo "nva public ip: "$nvapubip
@@ -184,4 +184,3 @@ echo ""
 echo "To check deployment: curl http://"$applbpip":8080/api/ip"
 echo ""
 echo "It may take up to 15 minutes before the API will respond ...."
-
