@@ -1,0 +1,46 @@
+#!/bin/bash
+
+apt-get -y update
+
+## Install the Quagga routing daemon
+echo "Installing quagga"
+apt-get -y install quagga
+
+echo "Installing IPTables-Persistent"
+echo iptables-persistent iptables-persistent/autosave_v4 boolean false | sudo debconf-set-selections
+echo iptables-persistent iptables-persistent/autosave_v6 boolean false | sudo debconf-set-selections
+apt-get -y install iptables-persistent
+
+##  run the updates and ensure the packages are up to date and there is no new version available for the packages
+apt-get -y update --fix-missing
+
+## Enable IPv4 forwarding
+echo "net.ipv4.conf.all.forwarding=1" | tee -a /etc/sysctl.conf
+echo "net.ipv4.conf.default.forwarding=1" | tee -a /etc/sysctl.conf
+sysctl -p
+
+# Enable NAT to Internet
+iptables -t nat -A POSTROUTING -d 10.0.0.0/8 -j ACCEPT
+iptables -t nat -A POSTROUTING -d 172.16.0.0/12 -j ACCEPT
+iptables -t nat -A POSTROUTING -d 192.168.0.0/16 -j ACCEPT
+iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+
+# Save to IPTables file for persistence on reboot
+iptables-save > /etc/iptables/rules.v4
+
+ifconfig eth0 mtu 1600
+
+# Internal
+ip link add vxlan900 type vxlan id 900 remote GWLB_PIP dstport 10800 nolearning
+ip link set vxlan900 up
+ip route add APPLB_PIP/32 dev vxlan900 metric 100
+
+# External
+ip link add vxlan901 type vxlan id 901 remote GWLB_PIP dstport 10801 nolearning
+ip link set vxlan901 up
+
+# bridge both VXLAN interfaces together
+ip link add br-vxlan type bridge
+ip link set vxlan900 master br-vxlan
+ip link set vxlan901 master br-vxlan
+ip link set br-vxlan up
