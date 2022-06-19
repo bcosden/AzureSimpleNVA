@@ -80,9 +80,9 @@ fi
 echo -e "$WHITE[$(date +"%T")]$GREEN Creating App External Load Balancer$WHITE"
 az network public-ip create -g $rg -n applb-pip --sku standard --allocation-method static -o none --only-show-errors
 az network lb create -n applb -g $rg --sku Standard --vnet-name appVnet --public-ip-address applb-pip --backend-pool-name vms --frontend-ip-name vmfrontend -o none
-echo "[$(date +"%T")] create probe ..."
+echo "[$(date +"%T")] ...create probe"
 az network lb probe create -n vmprobe --lb-name applb -g $rg --protocol tcp --port 8080 --interval 5 --threshold 2 -o none
-echo "[$(date +"%T")] create rule(s) ..."
+echo "[$(date +"%T")] ...create rule(s)"
 az network lb rule create --name vmrule \
     --lb-name applb \
     --resource-group $rg \
@@ -95,7 +95,7 @@ az network lb rule create --name vmrule \
     --output none
 
 # attach backend pool to LB
-echo "[$(date +"%T")] attach app vm ..."
+echo "[$(date +"%T")] ...attach app vm"
 appvmnicid=$(az vm show -n $vmapp -g $rg --query 'networkProfile.networkInterfaces[0].id' -o tsv)
 appvmconfig=$(az network nic show --ids $appvmnicid --query 'ipConfigurations[0].name' -o tsv)
 az network nic ip-config address-pool add --nic-name $vmapp"NIC" -g $rg --ip-config-name $appvmconfig --lb-name applb --address-pool vms -o none
@@ -113,9 +113,9 @@ curl "http://${applbpip}:8080/api/healthcheck"
 echo -e "$WHITE[$(date +"%T")]$GREEN Creating Gateway Load Balancer$WHITE"
 az network lb create -n gwlb -g $rg --sku Gateway --vnet-name nvaVnet --subnet nva --backend-pool-name nvas --frontend-ip-name nvafrontend -o none --only-show-errors
 az network lb address-pool tunnel-interface add --address-pool nvas --lb-name gwlb -g $rg --type External --protocol VXLAN --identifier '901' --port '10801' -o none --only-show-errors
-echo "[$(date +"%T")] create probe ..."
+echo "[$(date +"%T")] ...create probe"
 az network lb probe create -n nvaprobe --lb-name gwlb -g $rg --protocol tcp --port 22 --interval 5 --threshold 2 -o none
-echo "[$(date +"%T")] create rule ..."
+echo "[$(date +"%T")] ...create rule"
 az network lb rule create --name nvarule \
     --lb-name gwlb \
     --resource-group $rg \
@@ -164,7 +164,7 @@ else
 fi
 
 # Add nva to backend of gwlb
-echo "[$(date +"%T")] attach nva vm ..."
+echo "[$(date +"%T")] ...attach nva vm"
 nvanicid=$(az vm show -n $vmnva -g $rg --query 'networkProfile.networkInterfaces[0].id' -o tsv)
 nvaconfig=$(az network nic show --ids $nvanicid --query 'ipConfigurations[0].name' -o tsv)
 az network nic ip-config address-pool add --nic-name $vmnva"NIC" -g $rg --ip-config-name $nvaconfig --lb-name gwlb --address-pool nvas -o none
@@ -174,19 +174,14 @@ echo -e "$WHITE[$(date +"%T")]$GREEN Chain App Load Balancer to Gateway Load Bal
 gwlbid=$(az network lb frontend-ip show --lb-name gwlb -g $rg -n nvafrontend --query id -o tsv)
 az network lb frontend-ip update -n vmfrontend --lb-name applb -g $rg --public-ip-address applb-pip --gateway-lb $gwlbid -o none --only-show-errors
 
-# test health ok after deployment of GWLB
-echo -e "$WHITE[$(date +"%T")]$GREEN Test Application Load Balancer Health After GWLB Config $WHITE"
-echo "lb health check:"
-curl "http://${applbpip}:8080/api/healthcheck"
-
 # output key variables
 echo -e "$WHITE[$(date +"%T")]$GREEN Deployment Complete: $WHITE"
 echo "front end app load balancer ip: "$applbpip
 nvapubip=$(az network public-ip show -n $vmnva"-pip" -g $rg --query ipAddress -o tsv)
+echo "app public ip: "$apppubip
 echo "nva public ip: "$nvapubip
 echo ""
 echo "To check deployment: curl http://"$applbpip":8080/api/ip"
 echo ""
-echo "Result of Application API call:"
-curl "http://${applbpip}:8080/api/ip"
+echo "It may take up to 15 minutes before the API will respond ...."
 

@@ -2,46 +2,84 @@
 
 apt-get -y update
 
-## Install the Quagga routing daemon
-#echo "Installing quagga"
-#apt-get -y install quagga
+# Install the Quagga routing daemon
+echo "Installing quagga"
+apt-get -y install quagga
 
-#echo "Installing IPTables-Persistent"
-#echo iptables-persistent iptables-persistent/autosave_v4 boolean false | sudo debconf-set-selections
-#echo iptables-persistent iptables-persistent/autosave_v6 boolean false | sudo debconf-set-selections
-#apt-get -y install iptables-persistent
+echo "Installing IPTables-Persistent"
+echo iptables-persistent iptables-persistent/autosave_v4 boolean false | sudo debconf-set-selections
+echo iptables-persistent iptables-persistent/autosave_v6 boolean false | sudo debconf-set-selections
+apt-get -y install iptables-persistent
 
-##  run the updates and ensure the packages are up to date and there is no new version available for the packages
-#apt-get -y update --fix-missing
+#  run the updates and ensure the packages are up to date and there is no new version available for the packages
+apt-get -y update --fix-missing
 
 ## Enable IPv4 forwarding
 echo "net.ipv4.conf.all.forwarding=1" | tee -a /etc/sysctl.conf
 echo "net.ipv4.conf.default.forwarding=1" | tee -a /etc/sysctl.conf
 sysctl -p
 
-# Enable NAT to Internet
-#iptables -t nat -A POSTROUTING -d 10.0.0.0/8 -j ACCEPT
-#iptables -t nat -A POSTROUTING -d 172.16.0.0/12 -j ACCEPT
-#iptables -t nat -A POSTROUTING -d 192.168.0.0/16 -j ACCEPT
-#iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+# Enable Forwarding
 iptables -A FORWARD -j ACCEPT
 
 # Save to IPTables file for persistence on reboot
-#iptables-save > /etc/iptables/rules.v4
+iptables-save > /etc/iptables/rules.v4
 
+# Configure VXLAN
 ifconfig eth0 mtu 1600
 
-# Internal
+# VXLAN Internal
 ip link add vxlan900 type vxlan id 900 remote GWLB_PIP dstport 10800 nolearning
 ip link set vxlan900 up
 ip route add APPLB_PIP/32 dev vxlan900 metric 100
 
-# External
+# VXLAN External
 ip link add vxlan901 type vxlan id 901 remote GWLB_PIP dstport 10801 nolearning
 ip link set vxlan901 up
 
-# bridge both VXLAN interfaces together
+# bridge both VXLAN interfaces together (enable routing from int to external)
 ip link add br-vxlan type bridge
 ip link set vxlan900 master br-vxlan
 ip link set vxlan901 master br-vxlan
 ip link set br-vxlan up
+
+# Now we need to save the config above to run during startup
+# Otherwise changes will be lost on reboot
+#
+touch /etc/systemd/system/net-startup.service
+
+echo '[Unit]
+Description=Start up script
+ConditionPathExists=/etc/rc.local
+[Service]
+Type=forking
+ExecStart=/etc/rc.local start
+TimeoutSec=0
+StandardOutput=tty
+RemainAfterExit=yes
+SysVStartPriority=99
+[Install]
+WantedBy=multi-user.target' >> /etc/systemd/system/net-startup.service
+
+touch /etc/rc.local
+
+echo '#!/bin/bash
+# Configure VXLAN
+ifconfig eth0 mtu 1600
+# VXLAN Internal
+ip link add vxlan900 type vxlan id 900 remote GWLB_PIP dstport 10800 nolearning
+ip link set vxlan900 up
+ip route add APPLB_PIP/32 dev vxlan900 metric 100
+# VXLAN External
+ip link add vxlan901 type vxlan id 901 remote GWLB_PIP dstport 10801 nolearning
+ip link set vxlan901 up
+# bridge both VXLAN interfaces together (enable routing from int to external)
+ip link add br-vxlan type bridge
+ip link set vxlan900 master br-vxlan
+ip link set vxlan901 master br-vxlan
+ip link set br-vxlan up
+exit 0' >> /etc/rc.local
+
+chmod 755 /etc/rc.local
+systemctl daemon-reload
+systemctl enable net-startup.service
