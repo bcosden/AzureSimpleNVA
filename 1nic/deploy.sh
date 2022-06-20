@@ -27,7 +27,7 @@ echo -e "$WHITE[$(date +"%T")]$GREEN Creating Resource Group$CYAN" $rg"$GREEN in
 az group create -n $rg -l $loc -o none
 
 # create nva virtual network
-echo -e "$WHITE[$(date +"%T")]$GREEN Creating Virtual Network $WHITEhubVnet"
+echo -e "$WHITE[$(date +"%T")]$GREEN Creating Virtual Network hubVnet $WHITE"
 az network vnet create --address-prefixes 10.1.0.0/16 -n hubVnet -g $rg --subnet-name RouteServerSubnet --subnet-prefixes 10.1.1.0/25 -o none
 
 # create nva subnets
@@ -44,15 +44,15 @@ echo ".... creating AzureBastionSubnet"
 az network vnet subnet create -g $rg --vnet-name hubVnet -n AzureBastionSubnet --address-prefixes 10.1.6.0/26 -o none
 
 # create spoke virtual networks
-echo -e "$WHITE[$(date +"%T")]$GREEN Creating Virtual Network $WHITEspoke1Vnet"
+echo -e "$WHITE[$(date +"%T")]$GREEN Creating Virtual Network spoke1Vnet $WHITE"
 az network vnet create --address-prefixes 10.10.0.0/16 -n spoke1Vnet -g $rg --subnet-name app --subnet-prefixes 10.10.0.0/24 -o none
 
 # create spoke virtual networks
-echo -e "$WHITE[$(date +"%T")]$GREEN Creating Virtual Network $WHITEspoke2Vnet"
+echo -e "$WHITE[$(date +"%T")]$GREEN Creating Virtual Network spoke2Vnet $WHITE"
 az network vnet create --address-prefixes 10.11.0.0/16 -n spoke2Vnet -g $rg --subnet-name app --subnet-prefixes 10.11.0.0/24 -o none
 
 # create spoke virtual networks
-echo -e "$WHITE[$(date +"%T")]$GREEN Creating Virtual Network $WHITEspoke3Vnet"
+echo -e "$WHITE[$(date +"%T")]$GREEN Creating Virtual Network spoke3Vnet $WHITE"
 az network vnet create --address-prefixes 10.12.0.0/16 -n spoke3Vnet -g $rg --subnet-name app --subnet-prefixes 10.12.0.0/24 -o none
 
 # create Bastion
