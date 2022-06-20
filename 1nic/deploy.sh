@@ -27,7 +27,7 @@ echo -e "$WHITE[$(date +"%T")]$GREEN Creating Resource Group$CYAN" $rg"$GREEN in
 az group create -n $rg -l $loc -o none
 
 # create nva virtual network
-echo -e "$WHITE[$(date +"%T")]$GREEN Creating Virtual Network hubVnet $WHITE"
+echo -e "$WHITE[$(date +"%T")]$GREEN Creating Virtual Network $WHITEhubVnet"
 az network vnet create --address-prefixes 10.1.0.0/16 -n hubVnet -g $rg --subnet-name RouteServerSubnet --subnet-prefixes 10.1.1.0/25 -o none
 
 # create nva subnets
@@ -44,35 +44,16 @@ echo ".... creating AzureBastionSubnet"
 az network vnet subnet create -g $rg --vnet-name hubVnet -n AzureBastionSubnet --address-prefixes 10.1.6.0/26 -o none
 
 # create spoke virtual networks
-echo -e "$WHITE[$(date +"%T")]$GREEN Creating Virtual Network spoke1Vnet $WHITE"
+echo -e "$WHITE[$(date +"%T")]$GREEN Creating Virtual Network $WHITEspoke1Vnet"
 az network vnet create --address-prefixes 10.10.0.0/16 -n spoke1Vnet -g $rg --subnet-name app --subnet-prefixes 10.10.0.0/24 -o none
 
 # create spoke virtual networks
-echo -e "$WHITE[$(date +"%T")]$GREEN Creating Virtual Network spoke2Vnet $WHITE"
+echo -e "$WHITE[$(date +"%T")]$GREEN Creating Virtual Network $WHITEspoke2Vnet"
 az network vnet create --address-prefixes 10.11.0.0/16 -n spoke2Vnet -g $rg --subnet-name app --subnet-prefixes 10.11.0.0/24 -o none
 
 # create spoke virtual networks
-echo -e "$WHITE[$(date +"%T")]$GREEN Creating Virtual Network spoke3Vnet $WHITE"
+echo -e "$WHITE[$(date +"%T")]$GREEN Creating Virtual Network $WHITEspoke3Vnet"
 az network vnet create --address-prefixes 10.12.0.0/16 -n spoke3Vnet -g $rg --subnet-name app --subnet-prefixes 10.12.0.0/24 -o none
-
-# peer virtual networks (spoke to hub)
-echo -e "$WHITE[$(date +"%T")]$GREEN Peer hub to spokes $WHITE"
-hubid=$(az network vnet show -g $rg -n hubVnet --query id -o tsv)
-spoke1id=$(az network vnet show -g $rg -n spoke1Vnet --query id -o tsv)
-spoke2id=$(az network vnet show -g $rg -n spoke2Vnet --query id -o tsv)
-spoke3id=$(az network vnet show -g $rg -n spoke3Vnet --query id -o tsv)
-# peer spoke1
-echo ".... peering spoke1"
-az network vnet peering create -n "hubTOspoke1" -g $rg --vnet-name hubVnet --remote-vnet $spoke1id --allow-vnet-access --allow-forwarded-traffic --allow-gateway-transit -o none
-az network vnet peering create -n "spoke1TOhub" -g $rg --vnet-name spoke1Vnet --remote-vnet $hubid --allow-vnet-access --allow-forwarded-traffic --use-remote-gateways -o none
-# peer spoke2
-echo ".... peering spoke2"
-az network vnet peering create -n "hubTOspoke2" -g $rg --vnet-name hubVnet --remote-vnet $spoke2id --allow-vnet-access --allow-forwarded-traffic --allow-gateway-transit -o none
-az network vnet peering create -n "spoke2TOhub" -g $rg --vnet-name spoke2Vnet --remote-vnet $hubid --allow-vnet-access --allow-forwarded-traffic --use-remote-gateways -o none
-# peer spoke3
-echo ".... peering spoke3"
-az network vnet peering create -n "hubTOspoke3" -g $rg --vnet-name hubVnet --remote-vnet $spoke3id --allow-vnet-access --allow-forwarded-traffic --allow-gateway-transit -o none
-az network vnet peering create -n "spoke3TOhub" -g $rg --vnet-name spoke3Vnet --remote-vnet $hubid --allow-vnet-access --allow-forwarded-traffic --use-remote-gateways -o none
 
 # create Bastion
 echo -e "$WHITE[$(date +"%T")]$GREEN Create Bastion $WHITE"
@@ -130,6 +111,25 @@ az network routeserver create \
     --hosted-subnet $subnet_id \
     --public-ip-address rshub-pip \
     --output none
+
+# peer virtual networks (spoke to hub)
+echo -e "$WHITE[$(date +"%T")]$GREEN Peer hub to spokes $WHITE"
+hubid=$(az network vnet show -g $rg -n hubVnet --query id -o tsv)
+spoke1id=$(az network vnet show -g $rg -n spoke1Vnet --query id -o tsv)
+spoke2id=$(az network vnet show -g $rg -n spoke2Vnet --query id -o tsv)
+spoke3id=$(az network vnet show -g $rg -n spoke3Vnet --query id -o tsv)
+# peer spoke1
+echo ".... peering spoke1"
+az network vnet peering create -n "hubTOspoke1" -g $rg --vnet-name hubVnet --remote-vnet $spoke1id --allow-vnet-access --allow-forwarded-traffic --allow-gateway-transit -o none
+az network vnet peering create -n "spoke1TOhub" -g $rg --vnet-name spoke1Vnet --remote-vnet $hubid --allow-vnet-access --allow-forwarded-traffic --use-remote-gateways -o none
+# peer spoke2
+echo ".... peering spoke2"
+az network vnet peering create -n "hubTOspoke2" -g $rg --vnet-name hubVnet --remote-vnet $spoke2id --allow-vnet-access --allow-forwarded-traffic --allow-gateway-transit -o none
+az network vnet peering create -n "spoke2TOhub" -g $rg --vnet-name spoke2Vnet --remote-vnet $hubid --allow-vnet-access --allow-forwarded-traffic --use-remote-gateways -o none
+# peer spoke3
+echo ".... peering spoke3"
+az network vnet peering create -n "hubTOspoke3" -g $rg --vnet-name hubVnet --remote-vnet $spoke3id --allow-vnet-access --allow-forwarded-traffic --allow-gateway-transit -o none
+az network vnet peering create -n "spoke3TOhub" -g $rg --vnet-name spoke3Vnet --remote-vnet $hubid --allow-vnet-access --allow-forwarded-traffic --use-remote-gateways -o none
 
 # create route table for Quagga VM to reach internet
 echo -e "$WHITE[$(date +"%T")]$GREEN Create Route Table for NVA to Internet $WHITE"
