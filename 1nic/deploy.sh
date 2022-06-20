@@ -143,6 +143,8 @@ mypip=$(curl -4 ifconfig.io -s)
 echo -e "$WHITE[$(date +"%T")]$GREEN Create Public IP, NSG, and Allow SSH on port 22 for IP: $WHITE"$mypip
 az network nsg create -g $rg -n $vmname"NSG" -o none
 az network nsg rule create -n "Allow-SSH" --nsg-name $vmname"NSG" --priority 300 -g $rg --direction Inbound --protocol TCP --source-address-prefixes $mypip --destination-port-ranges 22 -o none
+az network nsg rule create -n "Allow-Http" --nsg-name $vmname"NSG" --priority 310 -g $rg --direction Inbound --protocol TCP --destination-port-ranges 80 -o none
+az network nsg rule create -n "Allow-Https" --nsg-name $vmname"NSG" --priority 320 -g $rg --direction Inbound --protocol TCP --destination-port-ranges 443 -o none
 az network public-ip create -n $vmname"-pip" -g $rg --version IPv4 --sku Standard -o none --only-show-errors 
 
 echo -e "$WHITE[$(date +"%T")]$GREEN Creating Quagga VM $WHITE"
