@@ -5,12 +5,13 @@ rg="rsQuagga-1nic"
 loc="eastus"
 
 vmname="QuaggaVM"
+vmapp="appVM"
 username="azureuser"
 password="MyP@ssword123"
 vmsize="Standard_D2S_v3"
 
 # create a resource group
-echo -e '\033[1m['$(date +"%T")']\033[32m Creating Resource Group\033[36m' $rg '\033[32min\033[36m' $loc
+echo '['$(date +"%T")'] Creating Resource Group' $rg 'in' $loc
 az group create -n $rg -l $loc -o none
 
 # create a virtual network
@@ -18,7 +19,7 @@ echo '['$(date +"%T")'] Creating Virtual Network hubVnet'
 az network vnet create --address-prefixes 10.1.0.0/16 -n hubVnet -g $rg --subnet-name RouteServerSubnet --subnet-prefixes 10.1.1.0/25 -o none
 
 # create subnets
-echo ''['$(date +"%T")'] Creating subnets'
+echo '['$(date +"%T")'] Creating subnets'
 echo ".... creating subnet1"
 az network vnet subnet create -g $rg --vnet-name hubVnet -n subnet1 --address-prefixes 10.1.2.0/24 -o none
 echo ".... creating subnet2"
@@ -62,6 +63,16 @@ az network public-ip create -n $vmname"-pip" -g $rg --version IPv4 --sku Standar
 echo '['$(date +"%T")'] Creating Quagga VM'
 az network nic create -g $rg --vnet-name hubVnet --subnet subnet3 -n $vmname"NIC" --public-ip-address $vmname"-pip" --private-ip-address 10.1.4.10 --network-security-group $vmname"NSG" --ip-forwarding true -o none
 az vm create -n $vmname -g $rg --image ubuntults --size $vmsize --nics $vmname"NIC" --authentication-type ssh --admin-username $username --ssh-key-values @~/.ssh/id_rsa.pub --custom-data cloud-init -o none --only-show-errors
+
+# create application VM
+echo '['$(date +"%T")'] Create Public IP, NSG, and Allow SSH on port 22 for IP: '$mypip
+az network nsg create -g $rg -n $vmapp"NSG" -o none
+az network nsg rule create -n "Allow-SSH" --nsg-name $vmapp"NSG" --priority 300 -g $rg --direction Inbound --protocol TCP --source-address-prefixes $mypip --destination-port-ranges 22 -o none
+az network public-ip create -n $vmapp"-pip" -g $rg --version IPv4 --sku Standard -o none --only-show-errors 
+
+echo '['$(date +"%T")'] Creating Application VM'
+az network nic create -g $rg --vnet-name hubVnet --subnet subnet1 -n $vmapp"NIC" --public-ip-address $vmapp"-pip" --network-security-group $vmapp"NSG" -o none
+az vm create -n $vmapp -g $rg --image ubuntults --size $vmsize --nics $vmapp"NIC" --authentication-type ssh --admin-username $username --ssh-key-values @~/.ssh/id_rsa.pub -o none --only-show-errors
 
 # enable b2b
 echo '['$(date +"%T")'] Enable B2B on RouteServer'
