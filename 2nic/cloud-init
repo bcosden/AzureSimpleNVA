@@ -50,8 +50,9 @@ iptables -A FORWARD -i eth1 -o eth0 -j ACCEPT
 # Save to IPTables file for persistence on reboot
 iptables-save > /etc/iptables/rules.v4
 
-# Add static route for internal interface
-route add -net 10.1.0.0/16 gw 10.1.4.1 metric 0 dev eth1
+# Add static route for private address space (RFC1918)
+# Route all private space to internal interface
+route add -net 10.0.0.0/8 gw 10.1.4.1 dev eth1
 
 # Setup static route to persist between reboots
 echo "#!/bin/bash" > /etc/rc.local
