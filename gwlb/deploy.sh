@@ -64,7 +64,6 @@ else
         --image ubuntults \
         --size $vmsize \
         --nics $vmapp"NIC" \
-        --authentication-type ssh \
         --admin-username $username \
         --admin-password $password \
         --custom-data cloud-appinit \
@@ -154,7 +153,6 @@ else
         --image ubuntults \
         --size $vmsize \
         --nics $vmnva"NIC" \
-        --authentication-type ssh \
         --admin-username $username \
         --admin-password $password \
         --custom-data cloud-nvainit.tmp \
