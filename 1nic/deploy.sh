@@ -14,6 +14,7 @@ CYAN="\033[36m"
 WHITE="\033[37m"
 NORMAL="\033[0;39m"
 
+usessh=true
 vmname="QuaggaVM"
 vmspoke1="spoke1VM"
 vmspoke2="spoke2VM"
@@ -149,22 +150,112 @@ az network public-ip create -n $vmname"-pip" -g $rg --version IPv4 --sku Standar
 
 echo -e "$WHITE[$(date +"%T")]$GREEN Creating Quagga VM $WHITE"
 az network nic create -g $rg --vnet-name hubVnet --subnet nva -n $vmname"NIC" --public-ip-address $vmname"-pip" --private-ip-address 10.1.4.10 --network-security-group $vmname"NSG" --ip-forwarding true -o none
-az vm create -n $vmname -g $rg --image ubuntults --size $vmsize --nics $vmname"NIC" --authentication-type ssh --admin-username $username --ssh-key-values @~/.ssh/id_rsa.pub --custom-data cloud-init -o none --only-show-errors
+if [ $usessh == "true" ]; then
+    az vm create -n $vmname \
+        -g $rg \
+        --image ubuntults \
+        --size $vmsize \
+        --nics $vmname"NIC" \
+        --authentication-type ssh \
+        --admin-username $username \
+        --ssh-key-values @~/.ssh/id_rsa.pub \
+        --custom-data cloud-init \
+        -o none \
+        --only-show-errors
+else
+    az vm create -n $vmname \
+        -g $rg \
+        --image ubuntults \
+        --size $vmsize \
+        --nics $vmname"NIC" \
+        --admin-username $username \
+        --admin-password $password \
+        --ssh-key-values @~/.ssh/id_rsa.pub \
+        --custom-data cloud-init \
+        -o none \
+        --only-show-errors
+fi
 
 # create Spoke1 VM
 echo -e "$WHITE[$(date +"%T")]$GREEN Creating Spoke1 VM $WHITE"
 az network nic create -g $rg --vnet-name spoke1Vnet --subnet app -n $vmspoke1"NIC" -o none
-az vm create -n $vmspoke1 -g $rg --image ubuntults --size $vmsize --nics $vmspoke1"NIC" --authentication-type ssh --admin-username $username --ssh-key-values @~/.ssh/id_rsa.pub -o none --only-show-errors
+if [ $usessh == "true" ]; then
+    az vm create -n $vmspoke1 \
+        -g $rg \
+        --image ubuntults \
+        --size $vmsize \
+        --nics $vmspoke1"NIC" \
+        --authentication-type ssh \
+        --admin-username $username \
+        --ssh-key-values @~/.ssh/id_rsa.pub \
+        -o none \
+        --only-show-errors
+else
+    az vm create -n $vmspoke1 \
+        -g $rg \
+        --image ubuntults \
+        --size $vmsize \
+        --nics $vmspoke1"NIC" \
+        --admin-username $username \
+        --admin-password $password \
+        --ssh-key-values @~/.ssh/id_rsa.pub \
+        -o none \
+        --only-show-errors
+fi
 
 # create Spoke2 VM
 echo -e "$WHITE[$(date +"%T")]$GREEN Creating Spoke2 VM $WHITE"
 az network nic create -g $rg --vnet-name spoke2Vnet --subnet app -n $vmspoke2"NIC" -o none
-az vm create -n $vmspoke2 -g $rg --image ubuntults --size $vmsize --nics $vmspoke2"NIC" --authentication-type ssh --admin-username $username --ssh-key-values @~/.ssh/id_rsa.pub -o none --only-show-errors
+if [ $usessh == "true" ]; then
+    az vm create -n $vmspoke2 \
+        -g $rg \
+        --image ubuntults \
+        --size $vmsize \
+        --nics $vmspoke2"NIC" \
+        --authentication-type ssh \
+        --admin-username $username \
+        --ssh-key-values @~/.ssh/id_rsa.pub \
+        -o none \
+        --only-show-errors
+else
+    az vm create -n $vmspoke2 \
+        -g $rg \
+        --image ubuntults \
+        --size $vmsize \
+        --nics $vmspoke2"NIC" \
+        --admin-username $username \
+        --admin-password $password \
+        --ssh-key-values @~/.ssh/id_rsa.pub \
+        -o none \
+        --only-show-errors
+fi
 
 # create Spoke3 VM
 echo -e "$WHITE[$(date +"%T")]$GREEN Creating Spoke3 VM $WHITE"
 az network nic create -g $rg --vnet-name spoke3Vnet --subnet app -n $vmspoke3"NIC" -o none
-az vm create -n $vmspoke3 -g $rg --image ubuntults --size $vmsize --nics $vmspoke3"NIC" --authentication-type ssh --admin-username $username --ssh-key-values @~/.ssh/id_rsa.pub -o none --only-show-errors
+if [ $usessh == "true" ]; then
+    az vm create -n $vmspoke3 \
+        -g $rg \
+        --image ubuntults \
+        --size $vmsize \
+        --nics $vmspoke3"NIC" \
+        --authentication-type ssh \
+        --admin-username $username \
+        --ssh-key-values @~/.ssh/id_rsa.pub \
+        -o none \
+        --only-show-errors
+else
+    az vm create -n $vmspoke3 \
+        -g $rg \
+        --image ubuntults \
+        --size $vmsize \
+        --nics $vmspoke3"NIC" \
+        --admin-username $username \
+        --admin-password $password \
+        --ssh-key-values @~/.ssh/id_rsa.pub \
+        -o none \
+        --only-show-errors
+fi
 
 # enable b2b
 echo -e "$WHITE[$(date +"%T")]$GREEN Enable B2B on RouteServer $WHITE"
