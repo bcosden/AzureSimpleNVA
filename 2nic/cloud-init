@@ -56,7 +56,7 @@ route add -net 10.0.0.0/8 gw 10.1.4.1 dev eth1
 
 # Setup static route to persist between reboots
 echo "#!/bin/bash" > /etc/rc.local
-echo "route add -net 10.1.0.0/16 gw 10.1.4.1 metric 0 dev eth1" >> /etc/rc.local
+echo "route add -net 10.0.0.0/8 gw 10.1.4.1 metric 0 dev eth1" >> /etc/rc.local
 chmod +x /etc/rc.local
 
 ## Create a folder for the quagga logs
