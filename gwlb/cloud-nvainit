@@ -1,10 +1,14 @@
 #!/bin/bash
 
+## Install the frr routing daemon
+echo "Installing frr"
+curl -s https://deb.frrouting.org/frr/keys.asc | sudo apt-key add -
+FRRVER="frr-stable"
+echo deb https://deb.frrouting.org/frr $(lsb_release -s -c) $FRRVER | sudo tee -a /etc/apt/sources.list.d/frr.list
+
 apt-get -y update
 
-# Install the Quagga routing daemon
-echo "Installing quagga"
-apt-get -y install quagga
+apt-get -y install frr frr-pythontools
 
 echo "Installing IPTables-Persistent"
 echo iptables-persistent iptables-persistent/autosave_v4 boolean false | sudo debconf-set-selections
@@ -24,6 +28,10 @@ iptables -A FORWARD -j ACCEPT
 
 # Save to IPTables file for persistence on reboot
 iptables-save > /etc/iptables/rules.v4
+
+## Create the configuration files for frr daemon
+echo "add bgpd in daemon config file"
+sed -i 's/bgpd=no/bgpd=yes/g' /etc/frr/daemons
 
 # Configure VXLAN
 ifconfig eth0 mtu 1600
@@ -83,3 +91,15 @@ exit 0' >> /etc/rc.local
 chmod 755 /etc/rc.local
 systemctl daemon-reload
 systemctl enable net-startup.service
+
+## to start daemons at system startup
+echo "enable frr at system startup"
+systemctl enable frr
+
+## run the daemons
+echo "start frr daemons"
+systemctl restart frr
+
+sudo adduser azureuser frrvty
+sudo adduser azureuser frr
+

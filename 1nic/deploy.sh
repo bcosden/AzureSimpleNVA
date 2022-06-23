@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # VARIABLES
-rg="FRR-1nic"
+rg="frr-1nic"
 loc="eastus"
 
 BLACK="\033[30m"
