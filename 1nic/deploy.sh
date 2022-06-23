@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # VARIABLES
-rg="rsQuagga-1nic"
+rg="FRR-1nic"
 loc="eastus"
 
 BLACK="\033[30m"
@@ -15,7 +15,7 @@ WHITE="\033[37m"
 NORMAL="\033[0;39m"
 
 usessh=true
-vmname="QuaggaVM"
+vmname="frrVM"
 vmspoke1="spoke1VM"
 vmspoke2="spoke2VM"
 vmspoke3="spoke3VM"
@@ -132,14 +132,14 @@ echo ".... peering spoke3"
 az network vnet peering create -n "hubTOspoke3" -g $rg --vnet-name hubVnet --remote-vnet $spoke3id --allow-vnet-access --allow-forwarded-traffic --allow-gateway-transit -o none
 az network vnet peering create -n "spoke3TOhub" -g $rg --vnet-name spoke3Vnet --remote-vnet $hubid --allow-vnet-access --allow-forwarded-traffic --use-remote-gateways -o none
 
-# create route table for Quagga VM to reach internet
+# create route table for FRR VM to reach internet
 echo -e "$WHITE$(date +"%T")$GREEN Create Route Table for NVA to Internet $WHITE"
 az network route-table create -g $rg -n nvaroute -o none
 az network route-table route create -g $rg --route-table-name nvaroute -n tointernet \
     --next-hop-type Internet --address-prefix 0.0.0.0/0 -o none
 az network vnet subnet update -g $rg -n nva --vnet-name hubVnet --route-table nvaroute -o none
 
-# create QuaggaVM
+# create FRRVM
 mypip=$(curl -4 ifconfig.io -s)
 echo -e "$WHITE$(date +"%T")$GREEN Create Public IP, NSG, and Allow SSH on port 22 for IP: $WHITE"$mypip
 az network nsg create -g $rg -n $vmname"NSG" -o none
@@ -148,7 +148,7 @@ az network nsg rule create -n "Allow-Http" --nsg-name $vmname"NSG" --priority 31
 az network nsg rule create -n "Allow-Https" --nsg-name $vmname"NSG" --priority 320 -g $rg --direction Inbound --protocol TCP --destination-port-ranges 443 -o none
 az network public-ip create -n $vmname"-pip" -g $rg --version IPv4 --sku Standard -o none --only-show-errors 
 
-echo -e "$WHITE$(date +"%T")$GREEN Creating Quagga VM $WHITE"
+echo -e "$WHITE$(date +"%T")$GREEN Creating FRR VM $WHITE"
 az network nic create -g $rg --vnet-name hubVnet --subnet nva -n $vmname"NIC" --public-ip-address $vmname"-pip" --private-ip-address 10.1.4.10 --network-security-group $vmname"NSG" --ip-forwarding true -o none
 if [ $usessh == "true" ]; then
     az vm create -n $vmname \
@@ -264,7 +264,7 @@ az network routeserver update --name rshub --resource-group $rg --allow-b2b-traf
 # create peering
 echo -e "$WHITE$(date +"%T")$GREEN Creating RouteServer Peering $WHITE"
 az network routeserver peering create \
-    --name Quagga \
+    --name FRR \
     --peer-ip 10.1.4.10 \
     --peer-asn 65001 \
     --routeserver rshub \
@@ -272,19 +272,19 @@ az network routeserver peering create \
     --output none
 
 # list routes
-echo -e "$WHITE$(date +"%T")$GREEN Quagga deployed. Listing Advertised Routes: $WHITE"
+echo -e "$WHITE$(date +"%T")$GREEN FRR deployed. Listing Advertised Routes: $WHITE"
 az network routeserver peering list-advertised-routes \
-    --name Quagga \
+    --name FRR \
     --routeserver rshub \
     --resource-group $rg
 
 echo -e "$WHITE$(date +"%T")$GREEN Listing Learned Routes: $WHITE"
 az network routeserver peering list-learned-routes \
-    --name Quagga \
+    --name FRR \
     --routeserver rshub \
     --resource-group $rg
 
-echo "To check Quagga route table"
+echo "To check FRR route table"
 echo "ssh azureuser@"$(az vm show -g $rg -n $vmname --show-details --query "publicIps" -o tsv)
 echo "vtysh"
 echo "show ip bgp"
