@@ -135,7 +135,7 @@ az network public-ip create -g $rg -n $vmnva"-pip" --sku standard --allocation-m
 az network nic create -g $rg --vnet-name nvaVnet --subnet nva -n $vmnva"NIC" --public-ip-address $vmnva"-pip" --network-security-group $vmnva"NSG" --ip-forwarding -o none
 
 # default is to use your local .ssh key in folder ~/.ssh/id_rsa.pub
-if [ $usessh == "true" ]; then
+if [ $usessh = "true" ]; then
     echo -e "$WHITE$(date +"%T")$GREEN Creating NVA VM using public key $WHITE"
     az vm create -n $vmnva -g $rg \
         --image ubuntults \

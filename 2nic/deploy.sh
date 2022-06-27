@@ -151,7 +151,7 @@ az network public-ip create -n $vmname"-pip" -g $rg --version IPv4 --sku Standar
 echo -e "$WHITE$(date +"%T")$GREEN Creating frr VM $WHITE"
 az network nic create -g $rg --vnet-name hubVnet --subnet internal -n $vmname"IntNIC" --private-ip-address 10.1.4.10 --ip-forwarding true -o none
 az network nic create -g $rg --vnet-name hubVnet --subnet external -n $vmname"ExtNIC" --public-ip-address $vmname"-pip" --private-ip-address 10.1.3.10 --network-security-group $vmname"NSG" --ip-forwarding true -o none
-if [ $usessh == "true" ]; then
+if [ $usessh = "true" ]; then
     az vm create -n $vmname \
         -g $rg \
         --image ubuntults \
