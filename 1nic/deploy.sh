@@ -179,7 +179,7 @@ fi
 # create Spoke1 VM
 echo -e "$WHITE$(date +"%T")$GREEN Creating Spoke1 VM $WHITE"
 az network nic create -g $rg --vnet-name spoke1Vnet --subnet app -n $vmspoke1"NIC" -o none
-if [ $usessh == "true" ]; then
+if [ $usessh = "true" ]; then
     az vm create -n $vmspoke1 \
         -g $rg \
         --image ubuntults \
@@ -206,7 +206,7 @@ fi
 # create Spoke2 VM
 echo -e "$WHITE$(date +"%T")$GREEN Creating Spoke2 VM $WHITE"
 az network nic create -g $rg --vnet-name spoke2Vnet --subnet app -n $vmspoke2"NIC" -o none
-if [ $usessh == "true" ]; then
+if [ $usessh = "true" ]; then
     az vm create -n $vmspoke2 \
         -g $rg \
         --image ubuntults \
@@ -233,7 +233,7 @@ fi
 # create Spoke3 VM
 echo -e "$WHITE$(date +"%T")$GREEN Creating Spoke3 VM $WHITE"
 az network nic create -g $rg --vnet-name spoke3Vnet --subnet app -n $vmspoke3"NIC" -o none
-if [ $usessh == "true" ]; then
+if [ $usessh = "true" ]; then
     az vm create -n $vmspoke3 \
         -g $rg \
         --image ubuntults \
