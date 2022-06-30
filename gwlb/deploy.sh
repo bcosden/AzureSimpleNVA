@@ -33,20 +33,13 @@ az network vnet create --address-prefixes 10.1.0.0/16 -n nvaVnet -g $rg --subnet
 echo -e "$WHITE$(date +"%T")$GREEN Creating App Virtual Network$WHITE"
 az network vnet create --address-prefixes 192.168.0.0/16 -n appVnet -g $rg --subnet-name app --subnet-prefixes 192.168.0.0/24 -o none
 
-# create NSG for NVA VM and Application VM
-mypip=$(curl -4 ifconfig.io -s)
-echo -e "$WHITE$(date +"%T")$GREEN Create NSG and Allow Web and ssh for IP: $WHITE"$mypip
-az network nsg create -g $rg -n $vmapp"NSG" -o none
-az network nsg rule create -n "allow-ssh" --nsg-name $vmapp"NSG" -g $rg --priority 500 --direction Inbound --protocol TCP --source-address-prefixes $mypip --destination-port-ranges 22 --access Allow -o none
-az network nsg rule create -n "allow-web" --nsg-name $vmapp"NSG" -g $rg --priority 510 --direction Inbound --protocol TCP --source-address-prefixes $mypip --destination-port-ranges 8080 --access Allow -o none
-
 # create Application VM
 echo -e "$WHITE$(date +"%T")$GREEN Create Application Public IP and NIC $WHITE"
 az network public-ip create -g $rg -n $vmapp"-pip" --sku standard --allocation-method static -o none --only-show-errors
-az network nic create -g $rg --vnet-name appVnet --subnet app -n $vmapp"NIC" --public-ip-address $vmapp"-pip" --network-security-group $vmapp"NSG" -o none
+az network nic create -g $rg --vnet-name appVnet --subnet app -n $vmapp"NIC" --public-ip-address $vmapp"-pip" -o none
 
 # default is to use your local .ssh key in folder ~/.ssh/id_rsa.pub
-if [ $usessh == "true" ]; then
+if [ $usessh = "true" ]; then
     echo -e "$WHITE$(date +"%T")$GREEN Creating Application VM using public key $WHITE"
     az vm create -n $vmapp -g $rg \
         --image ubuntults \
@@ -70,6 +63,42 @@ else
         --output none \
         --only-show-errors
 fi
+
+# create NSG at subnet level and set access policy
+echo -e "$WHITE$(date +"%T")$GREEN Creating Subnet NSG for appVnet $WHITE"
+az network nsg create -g $rg -n "appVnet-nsg" -o none
+az network vnet subnet update -g $rg -n app --vnet-name appVnet --network-security-group "appVnet-nsg" -o none
+
+echo -e "$WHITE$(date +"%T")$GREEN Creating Access Policy for App $WHITE"
+subid=$(az account show --query 'id' -o tsv)
+uri='https://management.azure.com/subscriptions/'$subid'/resourceGroups/'$rg'/providers/Microsoft.Security/locations/'$loc'/jitNetworkAccessPolicies/'$vmapp'?api-version=2020-01-01'
+json='{
+  "kind": "Basic",
+  "properties": {
+    "virtualMachines": [
+    {
+      "id": "/subscriptions/'$subid'/resourceGroups/'$rg'/providers/Microsoft.Compute/virtualMachines/'$vmapp'",
+      "ports": [
+      {
+        "number": 22,
+        "protocol": "*",
+        "allowedSourceAddressPrefix": "*",
+        "maxRequestAccessDuration": "PT24H"
+      },
+      {
+        "number": 8080,
+        "protocol": "*",
+        "allowedSourceAddressPrefix": "*",
+        "maxRequestAccessDuration": "PT24H"
+      }]
+    }]
+   }
+  }'
+
+az rest --method PUT \
+    --url $uri  \
+    --body "$json" \
+    --output none
 
 # create Application Load Balancer
 echo -e "$WHITE$(date +"%T")$GREEN Creating App External Load Balancer$WHITE"
@@ -127,12 +156,9 @@ applbpip=$(az network public-ip show -n applb-pip -g $rg --query ipAddress -o ts
 sed 's/GWLB_PIP/'$gwlbpip'/g;s/APPLB_PIP/'$applbpip'/g' cloud-nvainit > cloud-nvainit.tmp
 
 # create NVA VM
-echo -e "$WHITE$(date +"%T")$GREEN Create NSG and Allow ssh for IP: $WHITE"$mypip
-az network nsg create -g $rg -n $vmnva"NSG" -o none
-az network nsg rule create -n "allow-ssh" --nsg-name $vmnva"NSG" -g $rg --priority 500 --direction Inbound --protocol TCP --source-address-prefixes $mypip --destination-port-ranges 22 --access Allow -o none
 echo -e "$WHITE$(date +"%T")$GREEN Create NVA Public IP and NIC $WHITE"
 az network public-ip create -g $rg -n $vmnva"-pip" --sku standard --allocation-method static -o none --only-show-errors
-az network nic create -g $rg --vnet-name nvaVnet --subnet nva -n $vmnva"NIC" --public-ip-address $vmnva"-pip" --network-security-group $vmnva"NSG" --ip-forwarding -o none
+az network nic create -g $rg --vnet-name nvaVnet --subnet nva -n $vmnva"NIC" --public-ip-address $vmnva"-pip" --ip-forwarding -o none
 
 # default is to use your local .ssh key in folder ~/.ssh/id_rsa.pub
 if [ $usessh = "true" ]; then
@@ -159,6 +185,35 @@ else
         --output none \
         --only-show-errors
 fi
+
+# create NSG at subnet level and set access policy
+echo -e "$WHITE$(date +"%T")$GREEN Creating Subnet NSG for nvaVnet $WHITE"
+az network nsg create -g $rg -n "nvaVnet-nsg" -o none
+az network vnet subnet update -g $rg -n nva --vnet-name nvaVnet --network-security-group "nvaVnet-nsg" -o none
+
+echo -e "$WHITE$(date +"%T")$GREEN Creating Access Policy for NVA $WHITE"
+uri='https://management.azure.com/subscriptions/'$subid'/resourceGroups/'$rg'/providers/Microsoft.Security/locations/'$loc'/jitNetworkAccessPolicies/'$vmnva'?api-version=2020-01-01'
+json='{
+  "kind": "Basic",
+  "properties": {
+    "virtualMachines": [
+    {
+      "id": "/subscriptions/'$subid'/resourceGroups/'$rg'/providers/Microsoft.Compute/virtualMachines/'$vmnva'",
+      "ports": [
+      {
+        "number": 22,
+        "protocol": "*",
+        "allowedSourceAddressPrefix": "*",
+        "maxRequestAccessDuration": "PT24H"
+      }]
+    }]
+   }
+  }'
+
+az rest --method PUT \
+    --url $uri  \
+    --body "$json" \
+    --output none
 
 # Add nva to backend of gwlb
 echo "$(date +"%T") ...attach nva vm"

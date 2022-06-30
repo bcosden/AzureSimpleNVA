@@ -140,16 +140,9 @@ az network route-table route create -g $rg --route-table-name nvaroute -n tointe
 az network vnet subnet update -g $rg -n nva --vnet-name hubVnet --route-table nvaroute -o none
 
 # create FRRVM
-mypip=$(curl -4 ifconfig.io -s)
-echo -e "$WHITE$(date +"%T")$GREEN Create Public IP, NSG, and Allow SSH on port 22 for IP: $WHITE"$mypip
-az network nsg create -g $rg -n $vmname"NSG" -o none
-az network nsg rule create -n "Allow-SSH" --nsg-name $vmname"NSG" --priority 300 -g $rg --direction Inbound --protocol TCP --source-address-prefixes $mypip --destination-port-ranges 22 -o none
-az network nsg rule create -n "Allow-Http" --nsg-name $vmname"NSG" --priority 310 -g $rg --direction Inbound --protocol TCP --destination-port-ranges 80 -o none
-az network nsg rule create -n "Allow-Https" --nsg-name $vmname"NSG" --priority 320 -g $rg --direction Inbound --protocol TCP --destination-port-ranges 443 -o none
-az network public-ip create -n $vmname"-pip" -g $rg --version IPv4 --sku Standard -o none --only-show-errors 
-
 echo -e "$WHITE$(date +"%T")$GREEN Creating FRR VM $WHITE"
-az network nic create -g $rg --vnet-name hubVnet --subnet nva -n $vmname"NIC" --public-ip-address $vmname"-pip" --private-ip-address 10.1.4.10 --network-security-group $vmname"NSG" --ip-forwarding true -o none
+az network public-ip create -n $vmname"-pip" -g $rg --version IPv4 --sku Standard -o none --only-show-errors 
+az network nic create -g $rg --vnet-name hubVnet --subnet nva -n $vmname"NIC" --public-ip-address $vmname"-pip" --private-ip-address 10.1.4.10 --ip-forwarding true -o none
 if [ $usessh = "true" ]; then
     az vm create -n $vmname \
         -g $rg \
@@ -175,6 +168,35 @@ else
         -o none \
         --only-show-errors
 fi
+
+# create NSG at subnet level and set access policy
+echo -e "$WHITE$(date +"%T")$GREEN Creating Subnet NSG for HubVnet $WHITE"
+az network nsg create -g $rg -n "hubVnet-nsg" -o none
+az network vnet subnet update -g $rg -n nva --vnet-name hubVnet --network-security-group "hubVnet-nsg" -o none
+
+echo -e "$WHITE$(date +"%T")$GREEN Creating Access Policy for NVA $WHITE"
+uri='https://management.azure.com/subscriptions/'$subid'/resourceGroups/'$rg'/providers/Microsoft.Security/locations/'$loc'/jitNetworkAccessPolicies/'$vmname'?api-version=2020-01-01'
+json='{
+  "kind": "Basic",
+  "properties": {
+    "virtualMachines": [
+    {
+      "id": "/subscriptions/'$subid'/resourceGroups/'$rg'/providers/Microsoft.Compute/virtualMachines/'$vmname'",
+      "ports": [
+      {
+        "number": 22,
+        "protocol": "*",
+        "allowedSourceAddressPrefix": "*",
+        "maxRequestAccessDuration": "PT24H"
+      }]
+    }]
+   }
+  }'
+
+az rest --method PUT \
+    --url $uri  \
+    --body "$json" \
+    --output none
 
 # create Spoke1 VM
 echo -e "$WHITE$(date +"%T")$GREEN Creating Spoke1 VM $WHITE"
